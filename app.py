@@ -2,13 +2,12 @@ import os
 import streamlit as st
 from groq import Groq
 
-# Importar módulos
 from config import cargar_api_key
 from estilos import aplicar_estilos
 from prompts import SISTEMA_PROMPT, MENSAJE_BIENVENIDA
 from chatbot import consultar_modelo
 
-# -------------------- CONFIGURACIÓN DE PÁGINA --------------------
+
 st.set_page_config(
     page_title="Educación Continua PUCP - Chatbot",
     page_icon="🎓",
@@ -16,20 +15,22 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# -------------------- APLICACIÓN PRINCIPAL --------------------
 def main():
     aplicar_estilos()
     
-    # Verificar API key
+
     api_key = cargar_api_key()
     if not api_key:
         st.error("No se pudo cargar la configuración de la API.")
         return
     
-    os.environ["GROQ_API_KEY"] = api_key
-    cliente_groq = Groq()
+    try: 
+        cliente_groq = Groq(api_key=api_key)
+    except Exception as e:
+        st.error(f" Error al inicializar el cliente Groq: {e}")
+        return
     
-    # Layout principal
+
     col_izquierda, col_derecha = st.columns([1, 2])
     
     with col_izquierda:
@@ -39,7 +40,7 @@ def main():
         modelo, temperatura = configurar_sidebar()
         mostrar_chat_mejorado(cliente_groq, modelo, temperatura)
 
-# -------------------- HEADER IZQUIERDO --------------------
+
 def mostrar_header_izquierdo():
     """Encabezado PUCP sin menú de opciones"""
     st.markdown("""
@@ -52,7 +53,7 @@ def mostrar_header_izquierdo():
 def configurar_sidebar():
     """Configuración del modelo en sidebar"""
     with st.sidebar:
-        st.markdown("### ⚙️ Configuración del Chatbot")
+        st.markdown("###  Configuración del Chatbot")
         
         modelo = st.selectbox(
             "Modelo:",
@@ -65,13 +66,12 @@ def configurar_sidebar():
             0.0, 1.0, 0.3, 0.1
         )
         
-        if st.button("🗑️ Limpiar chat", use_container_width=True):
+        if st.button(" Limpiar chat", use_container_width=True):
             st.session_state.historial_chat = []
             st.rerun()
     
     return modelo, temperatura
 
-# -------------------- CHATBOT CON CONTAINER NATIVO --------------------
 def mostrar_chat_mejorado(cliente, modelo, temperatura):
     """Chat usando container nativo de Streamlit con altura fija"""
     
@@ -82,7 +82,7 @@ def mostrar_chat_mejorado(cliente, modelo, temperatura):
             "content": MENSAJE_BIENVENIDA
         }]
     
-    # Header del chat
+
     st.markdown("""
     <div class="chat-header-azul">
         <div class="chat-title-azul">
@@ -94,15 +94,14 @@ def mostrar_chat_mejorado(cliente, modelo, temperatura):
         </p>
     </div>
     """, unsafe_allow_html=True)
-    
-    # CONTENEDOR CON ALTURA FIJA MÁS GRANDE (700px)
+
     chat_container = st.container(height=700, border=False)
     
     with chat_container:
-        # Aplicar clase CSS personalizada
+
         st.markdown('<div class="mensajes-area" id="mensajes-container">', unsafe_allow_html=True)
         
-        # Renderizar mensajes
+ 
         for mensaje in st.session_state.historial_chat:
             if mensaje["role"] == "user":
                 st.markdown(f"""
@@ -127,13 +126,13 @@ def mostrar_chat_mejorado(cliente, modelo, temperatura):
         
         st.markdown('</div>', unsafe_allow_html=True)
     
-    # Espacio antes del input
+   
     st.markdown('<div style="margin-top: 20px;"></div>', unsafe_allow_html=True)
     
-    # Input de chat
+
     pregunta = st.chat_input("Escribe tu mensaje aquí...")
     
-    # Procesar pregunta
+
     if pregunta and pregunta.strip() != "":
         st.session_state.historial_chat.append({
             "role": "user",
@@ -142,7 +141,7 @@ def mostrar_chat_mejorado(cliente, modelo, temperatura):
         
         mensajes_modelo = [{"role": "system", "content": SISTEMA_PROMPT}] + st.session_state.historial_chat
         
-        with st.spinner("🤔 El asistente está escribiendo..."):
+        with st.spinner(" El asistente está escribiendo..."):
             respuesta = consultar_modelo(cliente, mensajes_modelo, modelo, temperatura)
         
         st.session_state.historial_chat.append({
